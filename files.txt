@@ -1,0 +1,270 @@
+#Implementacion c++
+#include <iostream>
+#include <vector>
+#include <random>
+#include <fstream>
+#include <sstream>
+
+using namespace std;
+
+class Perceptron
+{
+private:
+  float bias;
+  vector<float> weights;
+  float learning_rate;
+  static mt19937 gen;
+
+public:
+  int predict(vector<float> inputs){
+    float z = bias; 
+    for (int i = 0; i < weights.size(); i++)
+    {
+      z += weights[i] * inputs[i];
+    }
+    return activation(z);
+  }
+  int activation(float x)
+  {
+    return (x > 0) ? 1 : 0;
+  }
+
+  Perceptron(int num_inputs) : learning_rate(0.05)
+  {
+    uniform_real_distribution<float> dist(-1.0f, 1.0f);
+
+    weights.resize(num_inputs);
+    for (auto &w : weights)
+    {
+      w = dist(gen);
+    }
+    bias = dist(gen);
+  }
+
+  void train(int max_epochs, const vector<vector<float>> &x, const vector<float> &y)
+  {
+    for (int epoch = 0; epoch < max_epochs; epoch++)
+    {
+      int total_error = 0;
+      for (int i = 0; i < x.size(); i++)
+      {
+        int pred = predict(x[i]);
+        float err = y[i] - pred;
+        total_error += abs(err);
+        for (int k = 0; k < weights.size(); k++)
+        {
+          weights[k] += learning_rate * x[i][k] * err;
+        }
+        bias += learning_rate * err;
+      }
+      if (total_error == 0)
+      {
+        cout << "Detenido en el epoch" << epoch + 1 << endl;
+        break;
+      }
+    }
+  }
+
+  void print_weights()
+  {
+    cout << "Pesos: ";
+    for (const auto &w : weights)
+    {
+      cout << w << "\t";
+    }
+    cout << endl
+         << "Bias: " << bias << endl;
+  }
+  void save_model(const string &filename)
+  {
+    ofstream file(filename);
+    if (file.is_open())
+    {
+      for (const auto &w : weights)
+      {
+        file << w << ",";
+      }
+      file << bias << "\n";
+      file.close();
+      cout << "Modelo guardado en: " << filename << endl;
+    }
+    else
+    {
+      cerr << "Error al abrir el archivo para escritura." << endl;
+    }
+  }
+
+  void load_model(const string &filename)
+  {
+    ifstream file(filename);
+    if (file.is_open())
+    {
+      string line;
+      getline(file, line);
+      stringstream ss(line);
+      string value;
+      vector<float> loaded_weights;
+
+      while (getline(ss, value, ','))
+      {
+        if (!value.empty())
+        {
+          loaded_weights.push_back(stof(value));
+        }
+      }
+
+      if (!loaded_weights.empty())
+      {
+        bias = loaded_weights.back();
+        loaded_weights.pop_back();
+        weights = loaded_weights;
+      }
+      file.close();
+      cout << "Modelo cargado desde: " << filename << endl;
+    }
+    else
+    {
+      cerr << "Error al abrir el archivo para lectura." << endl;
+    }
+  }
+};
+
+mt19937 Perceptron::gen(98);
+
+int main()
+{
+  Perceptron p_and(2);
+  Perceptron p_or(2);
+
+  vector<vector<float>> x = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+  vector<float> y_and = {0, 0, 0, 1};
+  vector<float> y_or = {0, 1, 1, 1};
+
+  cout << "\tAND" << endl;
+  p_and.train(50, x, y_and);
+  p_and.print_weights();
+  for (int i = 0; i < x.size(); i++)
+  {
+    cout << "Predict de: " << x[i][0] << ", " << x[i][1]
+         << " = " << p_and.predict(x[i]) << "\t"
+         << "valor real es: " << y_and[i] << endl;
+  }
+  p_and.save_model("result/cpp_and_model.txt");
+
+
+  cout << "\n\n\tOR\t" << endl;
+  p_or.train(50, x, y_or);
+  p_or.print_weights();
+  for (int i = 0; i < x.size(); i++)
+  {
+    cout << "Predict de: " << x[i][0] << ", " << x[i][1]
+         << " = " << p_or.predict(x[i]) << "\t"
+         << "valor real es: " << y_or[i] << endl;
+  }
+  p_or.save_model("result/cpp_or_model.txt");
+
+  return 0;
+}
+
+
+#Implementacion python
+import numpy as np
+from sklearn.linear_model import Perceptron
+import os
+
+os.makedirs("result", exist_ok=True)
+
+X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+y_and = np.array([0, 0, 0, 1])
+y_or = np.array([0, 1, 1, 1])
+
+def train_and_save(X, y, gate_name):
+    model = Perceptron(max_iter=100, eta0=0.05, random_state=42, tol=0.05)
+    model.fit(X, y)
+    
+    with open(f"result/{gate_name}_model.txt", "w") as f:
+        f.write(",".join(map(str, model.coef_[0])) + f",{model.intercept_[0]}\n")
+    
+    print(f"\nModelo {gate_name.upper()}:")
+    print("Pesos:", model.coef_[0])
+    print("Bias:", model.intercept_[0])
+    print("Predicciones:", model.predict(X))
+
+# Entrenar y guardar modelos
+train_and_save(X, y_and, "py_and")
+train_and_save(X, y_or, "py_or")
+
+#Script para la visualización
+import numpy as np
+import matplotlib.pyplot as plt
+
+def load_params(file_path):
+    with open(file_path, 'r') as f:
+        line = f.readline()
+        w1, w2, b = map(float, line.strip().split(','))
+    return w1, w2, b
+
+def plot_regions(ax, w1, w2, b, cmap='coolwarm', alpha=0.2):
+    x_min, x_max = -0.5, 1.5
+    y_min, y_max = -0.5, 1.5
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, 300),
+                         np.linspace(y_min, y_max, 300))
+    z = w1 * xx + w2 * yy + b
+    zz = (z >= 0).astype(int)  # 1 si z ≥ 0, sino 0
+
+    ax.contourf(xx, yy, zz, levels=[-1, 0, 1], colors=['lightcoral', 'lightblue'], alpha=alpha)
+
+def plot_decision_line(ax, w1, w2, b, label, color):
+    x = np.linspace(-0.5, 1.5, 100)
+    if w2 != 0:
+        y = -(w1 * x + b) / w2
+        ax.plot(x, y, label=label, color=color)
+    else:
+        x_val = -b / w1
+        ax.axvline(x=x_val, label=label, color=color)
+
+def plot_inputs_and_axes(ax):
+    ax.axhline(0, color='black', linewidth=0.5)
+    ax.axvline(0, color='black', linewidth=0.5)
+    inputs = [(0, 0), (0, 1), (1, 0), (1, 1)]
+    for x, y in inputs:
+        ax.plot(x, y, 'ko')
+        ax.text(x + 0.03, y + 0.03, f'({x},{y})', fontsize=8)
+
+#AND
+fig_and, ax_and = plt.subplots()
+w1_cpp, w2_cpp, b_cpp = load_params('result/cpp_and_model.txt')
+w1_py, w2_py, b_py = load_params('result/py_and_model.txt')
+
+plot_regions(ax_and, w1_cpp, w2_cpp, b_cpp, alpha=0.15)
+plot_decision_line(ax_and, w1_cpp, w2_cpp, b_cpp, 'C++ AND', 'blue')
+
+plot_regions(ax_and, w1_py, w2_py, b_py, alpha=0.15)
+plot_decision_line(ax_and, w1_py, w2_py, b_py, 'Python AND', 'green')
+
+plot_inputs_and_axes(ax_and)
+ax_and.set_title("Líneas y regiones de decisión - AND")
+ax_and.set_xlim(-0.5, 1.5)
+ax_and.set_ylim(-0.5, 1.5)
+ax_and.legend()
+ax_and.grid(True)
+
+#OR
+fig_or, ax_or = plt.subplots()
+w1_cpp, w2_cpp, b_cpp = load_params('result/cpp_or_model.txt')
+w1_py, w2_py, b_py = load_params('result/py_or_model.txt')
+
+plot_regions(ax_or, w1_cpp, w2_cpp, b_cpp, alpha=0.15)
+plot_decision_line(ax_or, w1_cpp, w2_cpp, b_cpp, 'C++ OR', 'red')
+
+plot_regions(ax_or, w1_py, w2_py, b_py, alpha=0.15)
+plot_decision_line(ax_or, w1_py, w2_py, b_py, 'Python OR', 'orange')
+
+plot_inputs_and_axes(ax_or)
+ax_or.set_title("Líneas y regiones de decisión - OR")
+ax_or.set_xlim(-0.5, 1.5)
+ax_or.set_ylim(-0.5, 1.5)
+ax_or.legend()
+ax_or.grid(True)
+
+plt.show()
