@@ -13,7 +13,7 @@ def plot_regions(ax, w1, w2, b, cmap='coolwarm', alpha=0.2):
     xx, yy = np.meshgrid(np.linspace(x_min, x_max, 300),
                          np.linspace(y_min, y_max, 300))
     z = w1 * xx + w2 * yy + b
-    zz = (z >= 0).astype(int)  # 1 si z ≥ 0, sino 0
+    zz = (z >= 0).astype(int)
 
     ax.contourf(xx, yy, zz, levels=[-1, 0, 1], colors=['lightcoral', 'lightblue'], alpha=alpha)
 
@@ -34,7 +34,7 @@ def plot_inputs_and_axes(ax):
         ax.plot(x, y, 'ko')
         ax.text(x + 0.03, y + 0.03, f'({x},{y})', fontsize=8)
 
-#AND
+# AND
 fig_and, ax_and = plt.subplots()
 w1_cpp, w2_cpp, b_cpp = load_params('result/cpp_and_model.txt')
 w1_py, w2_py, b_py = load_params('result/py_and_model.txt')
@@ -52,7 +52,9 @@ ax_and.set_ylim(-0.5, 1.5)
 ax_and.legend()
 ax_and.grid(True)
 
-#OR
+fig_and.savefig('result/decision_regions_and.png')  # Guardar imagen AND
+
+# OR
 fig_or, ax_or = plt.subplots()
 w1_cpp, w2_cpp, b_cpp = load_params('result/cpp_or_model.txt')
 w1_py, w2_py, b_py = load_params('result/py_or_model.txt')
@@ -69,5 +71,7 @@ ax_or.set_xlim(-0.5, 1.5)
 ax_or.set_ylim(-0.5, 1.5)
 ax_or.legend()
 ax_or.grid(True)
+
+fig_or.savefig('result/decision_regions_or.png')  # Guardar imagen OR
 
 plt.show()
