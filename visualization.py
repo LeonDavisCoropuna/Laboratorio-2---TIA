@@ -52,7 +52,7 @@ ax_and.set_ylim(-0.5, 1.5)
 ax_and.legend()
 ax_and.grid(True)
 
-fig_and.savefig('result/decision_regions_and.png')  # Guardar imagen AND
+fig_and.savefig('result/decision_regions_and.png')
 
 # OR
 fig_or, ax_or = plt.subplots()
@@ -72,6 +72,6 @@ ax_or.set_ylim(-0.5, 1.5)
 ax_or.legend()
 ax_or.grid(True)
 
-fig_or.savefig('result/decision_regions_or.png')  # Guardar imagen OR
+fig_or.savefig('result/decision_regions_or.png')
 
 plt.show()
